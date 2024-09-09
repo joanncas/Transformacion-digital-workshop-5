@@ -1067,3 +1067,20 @@ Estos tickets proporcionan una estructura clara para implementar la funcionalida
 ```
 
 # Parte 4: Integración con el Workshop # 3 
+
+### Prompt #1
+
+Create a codebase for a frontend project in React
+
+### Prompt #2
+
+Create a codebase for a backend project in Node.js
+
+
+### Prompt #3
+
+This is a frontend ticket, please help me adding the changes to the codebase.
+
+### Prompt #4
+
+
