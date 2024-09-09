@@ -3,10 +3,11 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const winston = require('winston');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 // Configuración de CORS
 app.use(cors());
@@ -22,10 +23,16 @@ const logger = winston.createLogger({
   ],
 });
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)){
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Configuración de Multer para la carga de archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
