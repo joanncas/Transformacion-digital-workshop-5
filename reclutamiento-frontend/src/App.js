@@ -13,7 +13,7 @@ import {
   createTheme,
   TextField,
   Card,
-  Grid,
+  CircularProgress,
   CardContent,
   CardHeader,
 } from '@mui/material';
@@ -49,6 +49,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [assistantResponse, setAssistantResponse] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFolderChange = (event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -74,6 +75,7 @@ function App() {
     setUploadResults([]);
     setErrorMessage('');
     setAssistantResponse([]);
+    setIsLoading(true);
 
     const formData = new FormData();
     files.forEach((file) => {
@@ -100,40 +102,76 @@ function App() {
       setUploadResults(files.map(file => ({ filename: file.name, status: 'error' })));
     } finally {
       setUploading(false);
+      setIsLoading(false);
     }
   };
 
   const renderAssistantResponse = () => {
+    if (isLoading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+          <CircularProgress />
+          <Typography variant="h6" sx={{ ml: 2 }}>Analizando CVs...</Typography>
+        </Box>
+      );
+    }
+
     if (!assistantResponse || assistantResponse.length === 0) return null;
+
+    // Sort candidates by score in descending order
+    const sortedCandidates = [...assistantResponse].sort((a, b) => b.score - a.score);
 
     return (
       <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>Respuesta del Asistente:</Typography>
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-        gap: 2
-      }}>
-        {assistantResponse.map((candidate, index) => (
-          <Card key={index}>
-            <CardHeader title={candidate.name} />
-            <CardContent>
-              {Object.entries(candidate.contact_data).map(([key, value]) => (
-                <Typography key={key} variant="body2" sx={{ mb: 1 }}>
-                  <strong>{key}:</strong> {value}
-                </Typography>
-              ))}
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>Puntuación:</strong> {candidate.score}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Detalles:</strong> {candidate.details}
-              </Typography>
-            </CardContent>
-          </Card>
-        ))}
+        <Typography variant="h6" sx={{ mb: 2 }}>Ranking de Candidatos:</Typography>
+        <Box sx={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}>
+          {sortedCandidates.map((candidate, index) => (
+            <Card key={index} sx={{ 
+              display: 'flex', 
+              flexDirection: ['column', 'row'],
+              alignItems: 'stretch',
+              '&:hover': { boxShadow: 6 },
+              transition: 'box-shadow 0.3s'
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                padding: '0.5rem 1rem',
+                minWidth: '3rem',
+                alignSelf: 'stretch',
+                justifyContent: 'center',
+                bgcolor: 'primary.main',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: (index + 1 < 100) ? '1.5rem' : '1.25rem'
+              }}>
+                #{index + 1}
+              </Box>
+              <Box sx={{ flexGrow: 1 }}>
+                <CardHeader 
+                  title={candidate.name} 
+                  subheader={`Puntuación: ${candidate.score}`}
+                  titleTypographyProps={{ variant: 'h6' }}
+                  subheaderTypographyProps={{ variant: 'subtitle1', color: 'primary.main' }}
+                />
+                <CardContent>
+                  {Object.entries(candidate.contact_data).map(([key, value]) => (
+                    <Typography key={key} variant="body2" sx={{ mb: 1 }}>
+                      <strong>{key}:</strong> {value}
+                    </Typography>
+                  ))}
+                  <Typography variant="body2">
+                    <strong>Detalles:</strong> {candidate.details}
+                  </Typography>
+                </CardContent>
+              </Box>
+            </Card>
+          ))}
+        </Box>
       </Box>
-    </Box>
     );
   };
 
@@ -197,10 +235,10 @@ function App() {
             variant="contained"
             color="secondary"
             onClick={handleUpload}
-            disabled={uploading || files.length === 0 || !jobDescription.trim()}
+            disabled={uploading || files.length === 0 || !jobDescription.trim() || isLoading}
             sx={{ mt: 2, py: 1.5, px: 4, borderRadius: 2 }}
           >
-            Procesar Hojas de Vida
+            {isLoading ? 'Procesando...' : 'Procesar Hojas de Vida'}
           </Button>
           {uploading && (
             <Box sx={{ mt: 3 }}>

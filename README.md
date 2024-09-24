@@ -1,4 +1,23 @@
 # Workshop 5:
+
+```
+We are seeking an exceptional Full Stack Engineer to ensure that our applications are robust, scalable and efficient, working closely with multidisciplinary teams to define, design and launch new features.
+Responsibilities:
+Develop and maintain robust, scalable, and high-performance application using ReactJS for the frontend and NestJS for the backend.
+Collaborate with cross-functional teams to define, design, and ship new features.
+Write clean, maintainable, and efficient code.
+Conduct code reviews and provide constructive feedback.
+Optimize the application for maximum speed and scalability.
+Stay updated with emerging technologies and industry trends, applying best practices to improve the development process.
+Requirements (Skills & Experience):
+5+ years of engineering experience, 3+ years of full stack.
+Deep expertise with React & NestJS.
+Experience with GraphQL & REST.
+Experience with PostgreSQL.
+Excellent communication skills and the ability to work effectively in a team environment.
+English level: C1
+```
+
 ## Requerimientos:
 - [docs/README.md](./docs/README.md)
 
