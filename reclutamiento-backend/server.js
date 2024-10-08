@@ -172,6 +172,11 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
 
     logger.error(`Error al procesar archivos: ${error.message}`);
     res.status(500).json({ message: `Error al procesar archivos: ${error.message}` });
+  } finally {
+    // Cleanup the uploads folder
+    fs.rmdir('uploads/', { recursive: true })
+      .then(() => console.log('Uploads folder cleaned up'))
+      .catch((error) => console.error('Error cleaning up uploads folder:', error));
   }
 });
 
