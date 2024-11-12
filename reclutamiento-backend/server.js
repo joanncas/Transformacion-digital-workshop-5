@@ -3,10 +3,14 @@ const cors = require('cors');
 const path = require('path');
 const winston = require('winston');
 const fs = require('fs').promises;
-const fsf = require('fs')
+const fsf = require('fs');
 require('dotenv').config();
 const OpenAI = require('openai');
 const multer = require('multer');
+
+// Create uploads folder if it doesn't exist
+const uploadsFolder = 'uploads';
+fsf.existsSync(uploadsFolder) || fsf.mkdirSync(uploadsFolder);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -99,19 +103,21 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
         files: fileStreams,
       });  
 
-      logger.info(`Archivos subidos exitosamente`);
+      console.log(`Archivos subidos exitosamente`);
 
       // Create or update the assistant
       const assistant = await openai.beta.assistants.create({
         name: "CV Analyzer",
         instructions: "You are a CV analyzer finding the best profiles based on the job description that the user provides. Analyze the uploaded CVs and extract insights such as years of experience, english level, technologies, soft skills, achievements, studies and certifications.",
         tools: [{ type: "file_search" }],
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         tool_resources: {
           file_search: { vector_store_ids: [vectorStore.id] }
         },
         temperature: 0.5
       });
+
+      console.log(assistant);
 
       const thread = await openai.beta.threads.create({
         messages: [
@@ -123,15 +129,22 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
         ],
       });
 
+      console.log(thread)
+
       const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
         assistant_id: assistant.id,
       });
+
+      console.log(run)
       
       const messages = await openai.beta.threads.messages.list(thread.id, {
         run_id: run.id,
       });
 
+      console.log(messages)
+
       const message = messages.data.pop()
+      
       if (message.content[0].type === "text") {
         const { text } = message.content[0];
         const { annotations } = text;
