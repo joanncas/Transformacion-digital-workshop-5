@@ -19,9 +19,7 @@ import {
 } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-
 import logo from './kreante.jpg'; // Adjust the path as necessary
-
 
 // Create a custom theme with blue and white colors
 const theme = createTheme({
@@ -188,7 +186,7 @@ function App() {
       <Container maxWidth="md">
         <StyledPaper elevation={3}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-            <img src={kreanteLogo} alt="Kreante Logo" style={{ width: '150px', height: 'auto', marginRight: '16px' }} />
+            <img src={logo} alt="Kreante Logo" style={{ width: '150px', height: 'auto', marginRight: '16px' }} />
             <Typography variant="h4" component="h1" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
               Analizador hojas de vida
             </Typography>
