@@ -124,7 +124,7 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           {
             role: "user",
             content:
-              "I have the following job description: " + jobDescription + ". Generate a score from 1 to 100 for each resume according to attributes and job description. Create a ranking and answer only with a JSON with the top 10 suitable candidates, in this JSON please include their name, contact data, score, and details about why they are suitable for the job including the reasoning for the score (in Spanish)",
+              "I have the following job description: " + jobDescription + ". Generate a score from 1 to 100 for each resume according to attributes and job description. Create a ranking and answer only with a JSON with the top 10 suitable candidates, in this JSON please include their name, contact data, score, and a extense detail about why they are suitable for the job including the reasoning for the score and why is not the number 1 (in Spanish)",
           },
         ],
       });

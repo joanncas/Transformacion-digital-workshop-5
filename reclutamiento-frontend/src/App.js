@@ -159,12 +159,12 @@ function App() {
                   subheaderTypographyProps={{ variant: 'subtitle1', color: 'primary.main' }}
                 />
                 <CardContent>
-                  {candidate.contact_data && typeof candidate.contact_data === 'object' && Object.entries(candidate.contact_data).map(([key, value]) => (
+                  {candidate.contact && typeof candidate.contact === 'object' && Object.entries(candidate.contact).map(([key, value]) => (
                     <Typography key={key} variant="body2" sx={{ mb: 1 }}>
                       <strong>{key}:</strong> {value}
                     </Typography>
                   ))}
-                  {(!candidate.contact_data || typeof candidate.contact_data !== 'object') && (
+                  {(!candidate.contact || typeof candidate.contact !== 'object') && (
                     <Typography variant="body2" sx={{ mb: 1 }}>
                       <strong>Datos de contacto:</strong> No disponibles
                     </Typography>
