@@ -188,11 +188,7 @@ function App() {
       <Container maxWidth="md">
         <StyledPaper elevation={3}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-<<<<<<< HEAD
             <img src={kreanteLogo} alt="Kreante Logo" style={{ width: '150px', height: 'auto', marginRight: '16px' }} />
-=======
-            <img src={logo} alt="Company Logo" style={{ height: '50px', marginRight: '10px' }} />
->>>>>>> 66e40ab63a9463e98afe987963d9bf14c4e420e5
             <Typography variant="h4" component="h1" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
               Analizador hojas de vida
             </Typography>
