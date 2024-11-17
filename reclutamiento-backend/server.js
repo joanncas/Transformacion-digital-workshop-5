@@ -10,7 +10,25 @@ const multer = require('multer');
 
 // Create uploads folder if it doesn't exist
 const uploadsFolder = 'uploads';
-fsf.existsSync(uploadsFolder) || fsf.mkdirSync(uploadsFolder);
+
+async function ensureUploadsFolder() {
+  try {
+    await fs.access(uploadsFolder);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      try {
+        await fs.mkdir(uploadsFolder);
+        console.log('Uploads folder created successfully.');
+      } catch (mkdirError) {
+        console.error('Error creating uploads folder:', mkdirError);
+      }
+    } else {
+      console.error('Error accessing uploads folder:', error);
+    }
+  }
+}
+
+ensureUploadsFolder();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -124,7 +142,7 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           {
             role: "user",
             content:
-              "I have the following job description: " + jobDescription + ". Generate a score from 1 to 100 for each resume according to attributes and job description. Create a ranking and answer only with a JSON with the top 10 suitable candidates, in this JSON please include their name, contact data, score, and a extense detail about why they are suitable for the job including the reasoning for the score and why is not the number 1 (in Spanish)",
+              "I have the following job description: " + jobDescription + ". Generate a score from 1 to 100 for each resume according to attributes and job description. Create a ranking and answer only with a JSON with the top 10 suitable candidates, in this JSON please include their name, contact data, score, a extense detail about why they are suitable for the job including the reasoning for the score and why is not the number 1 (in Spanish), and some questions for the interview to validate why is not the number 1",
           },
         ],
       });

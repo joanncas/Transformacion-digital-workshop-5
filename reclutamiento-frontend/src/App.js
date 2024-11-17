@@ -172,6 +172,20 @@ function App() {
                   <Typography variant="body2">
                     <strong>Detalles:</strong> {candidate.details || 'No disponibles'}
                   </Typography>
+                  <Typography variant="body2">
+                    <strong>Preguntas:</strong>
+                  </Typography>
+                  {Array.isArray(candidate.interview_questions) && candidate.interview_questions.length > 0 ? (
+                    <ul>
+                      {candidate.interview_questions.map((question, index) => (
+                        <li key={index}>
+                          <Typography variant="body2">{question}</Typography>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Typography variant="body2">No disponibles</Typography>
+                  )}
                 </CardContent>
               </Box>
             </Card>
