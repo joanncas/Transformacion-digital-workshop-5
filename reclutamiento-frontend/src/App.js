@@ -170,7 +170,7 @@ function App() {
                     </Typography>
                   )}
                   <Typography variant="body2">
-                    <strong>Detalles:</strong> {candidate.details || 'No disponibles'}
+                    <strong>Detalles:</strong> {candidate.details || candidate.suitability_detail || 'No disponibles'}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Preguntas:</strong>
