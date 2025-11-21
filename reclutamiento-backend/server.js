@@ -72,12 +72,10 @@ try {
     apiKey: trimmedApiKey,
   });
   
-  // Verify the client is properly initialized
   if (!openai) {
     throw new Error('El objeto OpenAI es null o undefined');
   }
-  
-  // Debug: Log the structure of the client
+
   console.log('   Cliente OpenAI creado. Verificando estructura...');
   console.log('   - openai existe:', !!openai);
   console.log('   - openai.beta existe:', !!openai.beta);
@@ -87,38 +85,31 @@ try {
   console.log('   - openai.beta.assistants existe:', !!(openai.beta && openai.beta.assistants));
   console.log('   - openai.beta.threads existe:', !!(openai.beta && openai.beta.threads));
   
-  // Check if beta exists, if not, it might be a version issue
   let openaiVersion = 'desconocida';
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const packagePath = path.join(__dirname, 'node_modules', 'openai', 'package.json');
-    const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    const fsLocal = require('fs');
+    const pkgPath = path.join(__dirname, 'node_modules', 'openai', 'package.json');
+    const packageData = JSON.parse(fsLocal.readFileSync(pkgPath, 'utf8'));
     openaiVersion = packageData.version;
-  } catch (e) {
-    // Ignore if we can't read the version
-  }
-  
+  } catch (e) {}
+
   if (!openai.beta) {
     console.error('\n⚠️  ADVERTENCIA: La propiedad "beta" no está disponible.');
-    console.error('   Esto puede indicar un problema con la versión del SDK.');
     console.error('   Versión instalada:', openaiVersion);
     throw new Error('La propiedad "beta" es requerida para usar assistants API');
   }
-  
+
   if (!openai.beta.assistants) {
     console.error('\n⚠️  ADVERTENCIA: La propiedad "beta.assistants" no está disponible.');
     throw new Error('La propiedad "beta.assistants" es requerida para usar assistants API');
   }
-  
+
   if (!openai.files) {
     console.error('\n⚠️  ADVERTENCIA: La propiedad "files" no está disponible.');
     throw new Error('La propiedad "files" es requerida para subir archivos');
   }
-  
-  // Check for vectorStores in both locations (newer versions have it at root level)
+
   const hasVectorStores = !!(openai.vectorStores || (openai.beta && openai.beta.vectorStores));
-  
   if (!hasVectorStores) {
     console.warn('\n⚠️  ADVERTENCIA: La propiedad "vectorStores" no está disponible.');
     console.warn('   El código usará file_ids directamente como alternativa.');
@@ -160,29 +151,25 @@ const logger = winston.createLogger({
 
 const normalizeFileName = (originalname) => {
   return originalname
-    .toLowerCase()                        // Convert to lowercase
-    .replace(/\s+/g, '-')                 // Replace spaces with dashes
-    .replace(/[^\w\-\.]+/g, '');          // Remove special characters except alphanumeric, dash, and dot
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-\.]+/g, '');
 };
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Specify the uploads folder
-
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    // Use Date.now() to make the filename unique
     const normalizedFileName = normalizeFileName(file.originalname);
     const finalFileName = `${normalizedFileName}`;
     cb(null, finalFileName);
   }
 });
 
-// Initialize multer with the storage configuration
 const upload = multer({ storage: storage });
 
 app.post('/process-folder', upload.array('files'), async (req, res) => {
-  // Track uploaded files for cleanup (declared at function scope for finally block)
   const uploadedFileIds = [];
   let vectorStoreId = null;
   let assistantId = null;
@@ -215,23 +202,13 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
     );
 
     try {
-      // Validate OpenAI client is available
       if (!openai) {
-        throw new Error('OpenAI client no está inicializado. El servidor debe reiniciarse después de configurar OPENAI_API_KEY.');
+        throw new Error('OpenAI client no está inicializado.');
       }
-      
       if (!openai.beta) {
-        console.error('Error: openai.beta no está disponible');
-        console.error('Estructura del cliente:', Object.keys(openai));
-        let version = 'desconocida';
-        try {
-          version = require('openai/package.json')?.version || 'desconocida';
-        } catch (e) {
-          // Ignore
-        }
-        throw new Error(`La propiedad "beta" no está disponible en el cliente OpenAI. Esto puede indicar un problema con la versión del SDK. Versión instalada: ${version}`);
+        throw new Error('La propiedad "beta" no está disponible en el cliente OpenAI.');
       }
-      
+
       // Upload files to OpenAI
       console.log('📤 Subiendo archivos a OpenAI...');
       const uploadedFiles = [];
@@ -257,8 +234,7 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
 
       console.log(`✅ ${uploadedFiles.length} archivos subidos exitosamente`);
 
-      // Create vector store if the API is available, otherwise use file_ids directly
-      // In SDK v6.9.1, vectorStores is at openai.vectorStores, not openai.beta.vectorStores
+      // Create vector store if available
       const vectorStoresAPI = openai.vectorStores || (openai.beta && openai.beta.vectorStores);
       
       if (vectorStoresAPI) {
@@ -275,7 +251,6 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           vectorStoreId = vectorStore.id;
           console.log(`✅ Vector store creado: ${vectorStoreId}`);
           
-          // Add files to vector store
           if (vectorStoresAPI.files) {
             for (const fileId of uploadedFiles) {
               await vectorStoresAPI.files.create(vectorStoreId, {
@@ -284,7 +259,6 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
             }
             console.log('✅ Archivos agregados al vector store');
           } else if (vectorStoresAPI.fileBatches) {
-            // Use fileBatches if available
             await vectorStoresAPI.fileBatches.create(vectorStoreId, {
               file_ids: uploadedFiles
             });
@@ -298,35 +272,31 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
         console.log('ℹ️  Vector stores no disponible, usando file_ids directamente');
       }  
 
-      console.log(`Archivos subidos exitosamente`);
-
-      // Create or update the assistant
+      // Create assistant
       console.log('🤖 Creando assistant...');
       const assistantConfig = {
         name: "CV Analyzer",
         instructions: `
-        You are an expert CV analyzer and technical recruiter.
-        Your goal is to find the best profiles based on the job description the user provides.
-        
-        Always:
-        - Extract for each CV: years of experience, English level, technologies, soft skills, achievements, studies, and certifications.
-        - Compare each CV strictly against the job description.
-        - Be consistent in scoring: similar profiles → similar scores.
-        - When reasoning or explaining, use Spanish.
-        Return outputs ONLY in valid JSON when the user requests it.
-          `,
-          tools: [{ type: "file_search" }],
-          model: "gpt-4.1",
-          temperature: 0.2
-        };
+You are an expert CV analyzer and technical recruiter.
+Your goal is to find the best profiles based on the job description the user provides.
 
-      // Configure tool_resources based on what's available
+Always:
+- Extract for each CV: years of experience, English level, technologies, soft skills, achievements, studies, and certifications.
+- Compare each CV strictly against the job description.
+- Be consistent in scoring: similar profiles → similar scores.
+- When reasoning or explaining, use Spanish.
+Return outputs ONLY in valid JSON when the user requests it.
+        `,
+        tools: [{ type: "file_search" }],
+        model: "gpt-4.1",
+        temperature: 0.3
+      };
+
       if (vectorStoreId) {
         assistantConfig.tool_resources = {
           file_search: { vector_store_ids: [vectorStoreId] }
         };
       } else {
-        // Fallback: use file_ids directly (may not work with file_search, but worth trying)
         assistantConfig.tool_resources = {
           file_search: { file_ids: uploadedFiles }
         };
@@ -336,57 +306,63 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
       assistantId = assistant.id;
       console.log(`✅ Assistant creado: ${assistant.id}`);
 
-      console.log(assistant);
-
       const thread = await openai.beta.threads.create({
         messages: [
           {
             role: "user",
             content: `
-        I have the following job description: ${jobDescription}.
-        
-        Using the uploaded resumes:
-        1. Generate a score from 1 to 100 for EACH resume according to the job description.
-        2. Create a ranking and return ONLY a JSON with the TOP 10 candidates.
-        
-        The JSON MUST be an array named "candidates" with objects like:
-        {
-          "name": string,
-          "contact": string,
-          "score": number,
-          "detail": string,  // explicación extensa en ESPAÑOL
-          "why_not_first": string, // explicación en ESPAÑOL de por qué no es el #1
-          "interview_questions": [string] // preguntas en ESPAÑOL para validar por qué no es el #1
-        }
-        
-        Rules:
-        - Respond ONLY with valid JSON. No extra text.
-        - "detail", "why_not_first" and "interview_questions" MUST be in Spanish.
-        `
+I have the following job description: ${jobDescription}.
+
+Using the uploaded resumes:
+1. Generate a score from 1 to 100 for EACH resume according to the job description.
+2. Create a ranking and return ONLY a JSON with the TOP 10 candidates.
+
+The JSON MUST be an array named "candidates" with objects like:
+{
+  "name": string,
+  "contact": string,
+  "score": number,
+  "detail": string,
+  "why_not_first": string,
+  "interview_questions": [string]
+}
+
+Rules:
+- Respond ONLY with valid JSON. No extra text.
+- "detail", "why_not_first" and "interview_questions" MUST be in Spanish.
+            `
           }
         ],
       });
 
-      console.log(thread)
-
+      // Run assistant
       const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
         assistant_id: assistant.id,
       });
 
-      console.log(run)
-      
+      console.log('🏁 Run status:', run.status);
+
+      // ✅ NUEVO: validar que terminó bien antes de leer mensajes
+      if (run.status !== "completed") {
+        throw new Error(`Run no completado. status=${run.status}`);
+      }
+
+      // List messages
       const messages = await openai.beta.threads.messages.list(thread.id, {
         run_id: run.id,
       });
 
-      console.log(messages)
+      console.log('📨 Mensajes en thread:', messages.data.length);
 
-      const message = messages.data.pop()
-      
-      if (!message || !message.content || message.content.length === 0) {
+      // ✅ NUEVO: agarrar explícitamente la respuesta del assistant
+      const assistantMsg = messages.data.find(m => m.role === "assistant");
+
+      if (!assistantMsg || !assistantMsg.content || assistantMsg.content.length === 0) {
         throw new Error('No se recibió respuesta del assistant');
       }
-      
+
+      const message = assistantMsg;
+
       if (message.content[0].type === "text") {
         const { text } = message.content[0];
         const { annotations } = text || {};
@@ -411,24 +387,17 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           }
         }
       
-        // Extract and parse JSON response
         let responseText = text.value.trim();
         console.log('📄 Respuesta cruda del assistant (primeros 500 caracteres):', responseText.substring(0, 500));
         
-        // Try to extract JSON from markdown code blocks
         let jsonResponse = responseText;
-        
-        // Remove markdown code blocks if present
         jsonResponse = jsonResponse.replace(/```json\n?/g, '');
         jsonResponse = jsonResponse.replace(/```\n?/g, '');
         jsonResponse = jsonResponse.trim();
         
-        // Try to find JSON array or object in the response
-        // First try to find a complete JSON array - use non-greedy match to find the full array
         let jsonMatch = null;
         let startPos = jsonResponse.indexOf('[');
         if (startPos !== -1) {
-          // Find the matching closing bracket
           let depth = 0;
           let inString = false;
           let escapeNext = false;
@@ -466,9 +435,8 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           }
         }
         
-        // If no array found, try to find a JSON object
         if (!jsonMatch) {
-          let startPos = jsonResponse.indexOf('{');
+          startPos = jsonResponse.indexOf('{');
           if (startPos !== -1) {
             let depth = 0;
             let inString = false;
@@ -508,80 +476,24 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
           }
         }
         
-        // Log the extracted JSON length for debugging
         if (jsonMatch) {
           console.log('📏 Longitud del JSON extraído:', jsonResponse.length, 'caracteres');
-          console.log('📏 Últimos 200 caracteres del JSON:', jsonResponse.substring(Math.max(0, jsonResponse.length - 200)));
         }
         
         let parsedResponse;
         try {
           parsedResponse = JSON.parse(jsonResponse);
           console.log('✅ JSON parseado correctamente');
-          // Debug: Check structure after parsing
-          console.log('🔍 Tipo de respuesta parseada:', Array.isArray(parsedResponse) ? 'Array' : typeof parsedResponse);
-          if (Array.isArray(parsedResponse) && parsedResponse.length > 0) {
-            const firstElement = parsedResponse[0];
-            console.log('🔍 Primer elemento del array:', typeof firstElement);
-            console.log('🔍 Campos del primer elemento:', typeof firstElement === 'object' ? Object.keys(firstElement) : 'N/A');
-            // Check if it's an array containing objects with "candidates" property
-            if (typeof firstElement === 'object' && firstElement.candidates) {
-              console.log('🔍 Primer elemento tiene campo "candidates" con', firstElement.candidates.length, 'elementos');
-              if (firstElement.candidates.length > 0) {
-                const firstCandidate = firstElement.candidates[0];
-                console.log('🔍 Primer candidato real:', Object.keys(firstCandidate));
-                console.log('🔍 Valor de detail/details:', (firstCandidate.detail || firstCandidate.details) ? (firstCandidate.detail || firstCandidate.details).substring(0, 100) + '...' : 'undefined o null');
-                console.log('🔍 Tipo de contact:', typeof firstCandidate.contact);
-              }
-            } else {
-              // It's a direct array of candidates
-              console.log('🔍 Array directo de candidatos');
-              console.log('🔍 Campos del primer candidato:', Object.keys(firstElement));
-            }
-          } else if (parsedResponse && typeof parsedResponse === 'object') {
-            console.log('🔍 Estructura del objeto:', Object.keys(parsedResponse));
-            if (parsedResponse.candidates) {
-              console.log('🔍 Campo "candidates" encontrado con', parsedResponse.candidates.length, 'elementos');
-            }
-          }
         } catch (parseError) {
           console.error('❌ Error al parsear JSON:', parseError.message);
           console.error('JSON que falló (primeros 1500 caracteres):', jsonResponse.substring(0, 1500));
-          // Try to extract at least partial data
-          try {
-            // Try to find individual candidate objects
-            const candidateMatches = jsonResponse.match(/\{[^}]*"name"[^}]*\}/g);
-            if (candidateMatches && candidateMatches.length > 0) {
-              console.log('⚠️  Intentando parsear candidatos individuales...');
-              parsedResponse = candidateMatches.map(match => {
-                try {
-                  return JSON.parse(match);
-                } catch (e) {
-                  return null;
-                }
-              }).filter(c => c !== null);
-              console.log(`✅ Se extrajeron ${parsedResponse.length} candidatos parcialmente`);
-            } else {
-              throw parseError;
-            }
-          } catch (fallbackError) {
-            throw new Error(`Error al parsear la respuesta JSON del assistant: ${parseError.message}. Respuesta recibida: ${jsonResponse.substring(0, 500)}...`);
-          }
+          throw new Error(`Error al parsear la respuesta JSON del assistant: ${parseError.message}.`);
         }
         
-        // Normalize the response structure to match frontend expectations
-        // Frontend expects: name, score, contact {email, phone}, details, interview_questions
-        // New prompt returns: { "candidates": [...] } with contact as string and "detail" (singular)
-        // But sometimes it's wrapped in an array: [{ "candidates": [...] }]
-        
-        // First, extract candidates array if it's nested in an object
         let candidatesArray = null;
         if (Array.isArray(parsedResponse)) {
-          // Check if it's an array of objects with "candidates" property
           if (parsedResponse.length > 0 && typeof parsedResponse[0] === 'object' && parsedResponse[0].candidates) {
-            // Handle case: [{ "candidates": [...] }]
             candidatesArray = parsedResponse[0].candidates || parsedResponse[0].candidatos || null;
-            // If first element has candidates, check if others do too and merge them
             if (parsedResponse.length > 1) {
               const allCandidates = [];
               parsedResponse.forEach(item => {
@@ -596,36 +508,26 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
               }
             }
           } else {
-            // It's a direct array of candidates
             candidatesArray = parsedResponse;
           }
         } else if (parsedResponse && typeof parsedResponse === 'object') {
-          // Handle new format: { "candidates": [...] }
           candidatesArray = parsedResponse.candidates || parsedResponse.candidatos || null;
           if (!candidatesArray && !Array.isArray(parsedResponse)) {
-            // If it's an object but no candidates key, try to use it as a single candidate
             candidatesArray = [parsedResponse];
           }
         }
         
         if (candidatesArray && Array.isArray(candidatesArray)) {
           parsedResponse = candidatesArray.map(candidate => {
-            // Handle contact - can be string or object
             let contactObj = {};
             if (typeof candidate.contact === 'string') {
-              // If contact is a string, try to extract email and phone
               const contactStr = candidate.contact.trim();
-              // Try to find email
               const emailMatch = contactStr.match(/[\w\.-]+@[\w\.-]+\.\w+/);
-              // Try to find phone (look for patterns like +51 934 685 890, +1234567890, etc.)
-              // More flexible phone regex that handles international formats
-              // Look for phone patterns: + followed by digits, or digits with spaces/dashes
               const phoneMatch = contactStr.match(/(\+?\d{1,4}[\s\-]?)?\(?\d{1,4}\)?[\s\-]?\d{1,4}[\s\-]?\d{1,9}/);
               
               let extractedEmail = emailMatch ? emailMatch[0] : null;
               let extractedPhone = phoneMatch ? phoneMatch[0].trim() : null;
               
-              // If contact string is just an email (no phone found), use it as email
               if (!extractedEmail && contactStr.includes('@')) {
                 extractedEmail = contactStr;
               }
@@ -634,13 +536,9 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
                 email: extractedEmail || candidate.email || 'No disponible',
                 phone: extractedPhone || candidate.phone || candidate.telefono || 'No disponible'
               };
-              
-              console.log('📞 Contact string parseado:', contactStr, '->', contactObj);
             } else if (typeof candidate.contact === 'object' && candidate.contact !== null) {
-              // If contact is already an object
               contactObj = candidate.contact;
             } else {
-              // Fallback to individual fields
               contactObj = {
                 email: candidate.email || 'No disponible',
                 phone: candidate.phone || candidate.telefono || 'No disponible'
@@ -649,26 +547,15 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
             
             const email = contactObj.email || candidate.email || 'No disponible';
             const phone = contactObj.phone || candidate.phone || candidate.telefono || 'No disponible';
-            
-            // Get name from various possible fields
             const name = candidate.nombre || candidate.name || 'No disponible';
-            
-            // Get score from various possible fields
             const score = candidate.puntuacion || candidate.score || 0;
-            
-            // Get details - new prompt uses "detail" (singular), also check "details" (plural)
             const details = candidate.detail || candidate.details || candidate.reasoning || candidate.detalles || candidate.descripcion || candidate.description || candidate.detalle || 'No disponibles';
-            
-            // Get why_not_first (new field from prompt)
             const whyNotFirst = candidate.why_not_first || candidate.whyNotFirst || candidate.razonNoNumero1 || candidate.razonNoNumeroUno || '';
-            
-            // Get interview questions from various possible fields
             const interviewQuestions = Array.isArray(candidate.interview_questions) ? candidate.interview_questions : 
                         Array.isArray(candidate.preguntas) ? candidate.preguntas : 
                         Array.isArray(candidate.questions) ? candidate.questions : 
                         Array.isArray(candidate.preguntasEntrevista) ? candidate.preguntasEntrevista : [];
             
-            // Return in format expected by frontend
             return {
               name: name,
               score: score,
@@ -677,9 +564,8 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
                 phone: phone
               },
               details: details,
-              why_not_first: whyNotFirst, // Include new field
+              why_not_first: whyNotFirst,
               interview_questions: interviewQuestions,
-              // Also include Spanish fields for backward compatibility
               nombre: name,
               puntuacion: score,
               email: email,
@@ -690,36 +576,17 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
             };
           });
         } else {
-          // If we still don't have an array, log a warning
-          console.warn('⚠️  La respuesta no es un array ni tiene campo candidates. Tipo:', typeof parsedResponse);
-          console.warn('⚠️  Estructura recibida:', JSON.stringify(parsedResponse, null, 2).substring(0, 500));
+          console.warn('⚠️  La respuesta no es un array ni tiene campo candidates.');
           parsedResponse = [];
         }
         
-        console.log('📊 Respuesta procesada (primer candidato):', JSON.stringify(parsedResponse[0] || parsedResponse, null, 2));
-        console.log('📊 Total de candidatos:', Array.isArray(parsedResponse) ? parsedResponse.length : 0);
-        console.log('📚 Citas:', citations.join("\n"));
-        
-        // Ensure we're sending an array
         if (!Array.isArray(parsedResponse)) {
-          console.warn('⚠️  La respuesta no es un array, convirtiendo...');
           parsedResponse = [parsedResponse];
         }
         
-        // Validate that we have valid data
         if (parsedResponse.length === 0) {
-          console.error('❌ No se encontraron candidatos en la respuesta');
           throw new Error('No se encontraron candidatos en la respuesta del assistant');
         }
-        
-        // Log first candidate structure for debugging
-        const firstCandidate = parsedResponse[0];
-        console.log('🔍 Estructura del primer candidato:');
-        console.log('  - name:', firstCandidate.name);
-        console.log('  - score:', firstCandidate.score);
-        console.log('  - contact:', firstCandidate.contact);
-        console.log('  - details:', firstCandidate.details ? firstCandidate.details.substring(0, 100) + '...' : 'No disponible');
-        console.log('  - interview_questions:', Array.isArray(firstCandidate.interview_questions) ? firstCandidate.interview_questions.length : 'No es array');
         
         res.status(200).json({ 
           files: processedFiles,
@@ -730,22 +597,18 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
       }
 
     } catch (error) {
-
       console.log(`Error: ${error.message}`);
       res.status(500).json({ message: `Error con OpenAI: ${error.message}` });
     }
 
   } catch (error) {
-
     logger.error(`Error al procesar archivos: ${error.message}`);
     res.status(500).json({ message: `Error al procesar archivos: ${error.message}` });
   } finally {
-    // Cleanup: Delete uploaded files from OpenAI
     if (uploadedFileIds.length > 0) {
       console.log('🧹 Limpiando archivos subidos a OpenAI...');
       for (const fileId of uploadedFileIds) {
         try {
-          // In SDK v6.9.1, use delete() instead of del()
           await openai.files.delete(fileId);
           console.log(`✅ Archivo eliminado de OpenAI: ${fileId}`);
         } catch (cleanupError) {
@@ -754,10 +617,8 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
       }
     }
     
-    // Cleanup: Delete assistant if created
     if (assistantId) {
       try {
-        // In SDK v6.9.1, use delete() instead of del()
         await openai.beta.assistants.delete(assistantId);
         console.log(`✅ Assistant eliminado: ${assistantId}`);
       } catch (cleanupError) {
@@ -765,12 +626,10 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
       }
     }
     
-    // Cleanup: Delete vector store if created
     if (vectorStoreId) {
       try {
         const vectorStoresAPI = openai.vectorStores || (openai.beta && openai.beta.vectorStores);
         if (vectorStoresAPI) {
-          // In SDK v6.9.1, use delete() instead of del()
           await vectorStoresAPI.delete(vectorStoreId);
           console.log(`✅ Vector store eliminado: ${vectorStoreId}`);
         }
@@ -779,9 +638,7 @@ app.post('/process-folder', upload.array('files'), async (req, res) => {
       }
     }
     
-    // Ensure the uploads folder is recreated for future operations
     try {
-      // Use fs.rm instead of fs.rmdir (deprecated)
       await fs.rm('uploads/', { recursive: true, force: true });
       console.log('📁 Carpeta uploads limpiada');
       await fs.mkdir('uploads/');
