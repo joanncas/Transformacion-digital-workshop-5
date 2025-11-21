@@ -159,32 +159,52 @@ function App() {
                   subheaderTypographyProps={{ variant: 'subtitle1', color: 'primary.main' }}
                 />
                 <CardContent>
-                  {candidate.contact && typeof candidate.contact === 'object' && Object.entries(candidate.contact).map(([key, value]) => (
-                    <Typography key={key} variant="body2" sx={{ mb: 1 }}>
-                      <strong>{key}:</strong> {value}
-                    </Typography>
-                  ))}
-                  {(!candidate.contact || typeof candidate.contact !== 'object') && (
+                  {/* Contact Information */}
+                  {candidate.contact && typeof candidate.contact === 'object' ? (
+                    <>
+                      {candidate.contact.email && (
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Email:</strong> {candidate.contact.email}
+                        </Typography>
+                      )}
+                      {candidate.contact.phone && (
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Teléfono:</strong> {candidate.contact.phone}
+                        </Typography>
+                      )}
+                    </>
+                  ) : (
                     <Typography variant="body2" sx={{ mb: 1 }}>
                       <strong>Datos de contacto:</strong> No disponibles
                     </Typography>
                   )}
-                  <Typography variant="body2">
-                    <strong>Detalles:</strong> {candidate.details || candidate.suitability_detail || 'No disponibles'}
+                  
+                  {/* Details */}
+                  <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
+                    <strong>Detalles:</strong> {candidate.details || candidate.detail || candidate.suitability_detail || 'No disponibles'}
                   </Typography>
-                  <Typography variant="body2">
-                    <strong>Preguntas:</strong>
+                  
+                  {/* Why not first */}
+                  {candidate.why_not_first && (
+                    <Typography variant="body2" sx={{ mb: 1, mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>
+                      <strong>¿Por qué no es el #1?</strong> {candidate.why_not_first}
+                    </Typography>
+                  )}
+                  
+                  {/* Interview Questions */}
+                  <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                    <strong>Preguntas para la entrevista:</strong>
                   </Typography>
                   {Array.isArray(candidate.interview_questions) && candidate.interview_questions.length > 0 ? (
-                    <ul>
+                    <ul style={{ marginTop: 0, paddingLeft: '20px' }}>
                       {candidate.interview_questions.map((question, index) => (
                         <li key={index}>
-                          <Typography variant="body2">{question}</Typography>
+                          <Typography variant="body2" sx={{ mb: 0.5 }}>{question}</Typography>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <Typography variant="body2">No disponibles</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>No disponibles</Typography>
                   )}
                 </CardContent>
               </Box>

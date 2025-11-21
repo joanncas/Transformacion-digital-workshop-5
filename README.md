@@ -53,7 +53,21 @@ This project consists of a React frontend and a Node.js backend, allowing users 
 3. Create a `.env` file in the backend directory and set your environment variables:
    ```
    PORT=5000
+   OPENAI_API_KEY=tu_api_key_de_openai_aqui
+   OPENAI_MODEL=gpt-4o-mini
+   OPENAI_TEMPERATURE=0.2
    ```
+   
+   **Importante**: 
+   - Necesitas obtener una API key de OpenAI desde https://platform.openai.com/api-keys y agregarla al archivo `.env`. Sin esta clave, la aplicación no funcionará correctamente.
+   - **Modelos disponibles**: 
+     - `gpt-4o-mini` (recomendado, económico y rápido)
+     - `gpt-4o` (mejor calidad, más caro)
+     - `gpt-4-turbo` (balance calidad/precio)
+   - **Temperatura recomendada**:
+     - `0.1-0.3` para análisis y ranking (más consistente y preciso)
+     - `0.5-0.7` para análisis más creativo o flexible
+     - `0.2` es el valor por defecto recomendado para este caso de uso
 
 4. Start the backend server:
    ```
